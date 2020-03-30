@@ -52,8 +52,8 @@ struct KdTree
 
 	bool nodeInBox(Node* node, std::vector<float> target, float distanceTol)
 	{
-		return (fabs(target[0] - node->point[0]) < distanceTol &&
-				fabs(target[1] - node->point[1]) < distanceTol);
+		return (fabs(target[0] - node->point[0]) <= distanceTol &&
+				fabs(target[1] - node->point[1]) <= distanceTol);
 	}
 
 	// Euclidean distance
@@ -69,17 +69,17 @@ struct KdTree
 		{
 			if (nodeInBox(node, target, distanceTol))
 			{
-				if (distanceToNode(node, target) < distanceTol)
+				if (distanceToNode(node, target) <= distanceTol)
 				{
 					ids.push_back(node->id);
 				}
 			}
 			uint dim = depth % 2;
-			if (target[dim] - distanceTol < node->point[dim])
+			if (target[dim] - distanceTol <= node->point[dim])
 			{
 				searchNode(node->left, depth + 1, target, distanceTol, ids);
 			}
-			if (target[dim] + distanceTol > node->point[dim])
+			if (target[dim] + distanceTol >= node->point[dim])
 			{
 				searchNode(node->right, depth + 1, target, distanceTol, ids);
 			}
