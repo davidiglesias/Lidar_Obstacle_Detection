@@ -22,19 +22,45 @@ void ProcessPointClouds<PointT>::numPoints(typename pcl::PointCloud<PointT>::Ptr
 
 
 template<typename PointT>
-typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(typename pcl::PointCloud<PointT>::Ptr cloud, float filterRes, Eigen::Vector4f minPoint, Eigen::Vector4f maxPoint)
+typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(
+    typename pcl::PointCloud<PointT>::Ptr cloud,
+    float filterRes,
+    Eigen::Vector4f minPoint,
+    Eigen::Vector4f maxPoint
+    )
 {
+    typename pcl::PointCloud<PointT>::Ptr cloud_cropped(new pcl::PointCloud<PointT>);
+    typename pcl::PointCloud<PointT>::Ptr roof_cropped(new pcl::PointCloud<PointT>);
+    typename pcl::PointCloud<PointT>::Ptr cloud_filtered(new pcl::PointCloud<PointT>);
 
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
 
-    // TODO:: Fill in the function to do voxel grid point reduction and region based filtering
+    // Crop to leave points only in region of interest
+    pcl::CropBox<PointT> cloud_cropper(true);
+    cloud_cropper.setInputCloud(cloud);
+    cloud_cropper.setMin(minPoint);
+    cloud_cropper.setMax(maxPoint);
+    cloud_cropper.filter(*cloud_cropped);
+
+    pcl::CropBox<PointT> roof_cropper(true);
+    roof_cropper.setInputCloud(cloud_cropped);
+    roof_cropper.setMin(Eigen::Vector4f(-1.5, -1.7, -1, 1));
+    roof_cropper.setMax(Eigen::Vector4f(2.6, 1.7, -0.4, 1));
+    roof_cropper.setNegative(true);
+    roof_cropper.filter(*roof_cropped);
+
+    // Downsample point cloud
+    pcl::VoxelGrid<PointT> sor;
+    sor.setInputCloud(roof_cropped);
+    sor.setLeafSize(filterRes, filterRes, filterRes);
+    sor.filter(*cloud_filtered);
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "filtering took " << elapsedTime.count() << " milliseconds" << std::endl;
 
-    return cloud;
+    return cloud_filtered;
 
 }
 
