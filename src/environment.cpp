@@ -76,11 +76,10 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     renderPointCloud(viewer, segmentCloud.second, "planeCloud", Color(1,1,1));  
 }
 
-void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
+void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer,
+               ProcessPointClouds<pcl::PointXYZI>* pointProcessor,
+               const pcl::PointCloud<pcl::PointXYZI>::Ptr& inputCloud)
 {
-    ProcessPointClouds<pcl::PointXYZI>* pointProcessor = new ProcessPointClouds<pcl::PointXYZI>();
-    pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud = 
-        pointProcessor->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
     //renderPointCloud(viewer,inputCloud,"inputCloud");
     
     // Downsample and select ROI around car
@@ -146,13 +145,27 @@ int main (int argc, char** argv)
 {
     std::cout << "starting enviroment" << std::endl;
 
-    pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
     CameraAngle setAngle = XY;
     initCamera(setAngle, viewer);
-    cityBlock(viewer);
+    ProcessPointClouds<pcl::PointXYZI>* pointProcessor = new ProcessPointClouds<pcl::PointXYZI>();
+    std::vector<boost::filesystem::path> stream = pointProcessor->streamPcd("../src/sensors/data/pcd/data_1");
+    auto streamIterator = stream.begin();
+    pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud;
 
-    while (!viewer->wasStopped ())
+    while (!viewer->wasStopped())
     {
-        viewer->spinOnce ();
-    } 
+        // Clear viewer
+        viewer->removeAllPointClouds();
+        viewer->removeAllShapes();
+
+        // Load pcd and run obstacle detection process
+        inputCloud = pointProcessor->loadPcd((*streamIterator).string());
+        cityBlock(viewer, pointProcessor, inputCloud);
+
+        streamIterator++;
+        if(streamIterator == stream.end()) streamIterator = stream.begin();
+
+        viewer->spinOnce();
+    }
 }
