@@ -66,7 +66,8 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(
 
 
 template<typename PointT>
-std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(pcl::PointIndices::Ptr inliers, typename pcl::PointCloud<PointT>::Ptr cloud) 
+std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SeparateClouds(
+    pcl::PointIndices::Ptr inliers, typename pcl::PointCloud<PointT>::Ptr cloud) 
 {
     typename pcl::PointCloud<PointT>::Ptr cloud1(new pcl::PointCloud<PointT>());
     typename pcl::PointCloud<PointT>::Ptr cloud2(new pcl::PointCloud<PointT>());
@@ -92,7 +93,8 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 
 
 template<typename PointT>
-std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceThreshold)
+std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SegmentPlane(
+    typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceThreshold)
 {
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
@@ -134,7 +136,7 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 		A = v1xv2(0);
 		B = v1xv2(1);
 		C = v1xv2(2);
-		D = -(v1xv2(0) * v1(0) + v1xv2(1) * v1(1) + v1xv2(2) * v1(2));
+		D = -(v1xv2(0) * cloud->points[idx1].x + v1xv2(1) * cloud->points[idx1].y + v1xv2(2) * cloud->points[idx1].z);
 
 		// Distance
 		for (int j = 0; j < cloud->points.size(); j++)
@@ -142,13 +144,13 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 			auto& p = cloud->points[j];
 			float d = fabs(A * p.x + B * p.y + C * p.z + D) / sqrt(A * A + B * B + C * C);
 			// std::cout << "A, B, C" << A << " " << B << " " << C << " distance: " << d << std::endl;
-			if (d < distanceThreshold)
+			if (d <= distanceThreshold)
 			{
 				inliers.insert(j);
 				num_inliers++;
 			}
 		}
-		std::cout << "iter: " << i << ", inliers: " << num_inliers << std::endl;
+		// std::cout << "iter: " << i << ", inliers: " << num_inliers << std::endl;
 
 		if (num_inliers > best_num_inliers)
 		{
@@ -181,7 +183,8 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 
 
 template<typename PointT>
-std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr cloud, float clusterTolerance, int minSize, int maxSize)
+std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::Clustering(
+    typename pcl::PointCloud<PointT>::Ptr cloud, float clusterTolerance, int minSize, int maxSize)
 {
 
     // Time clustering process

@@ -78,14 +78,43 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
-    ProcessPointClouds<pcl::PointXYZI>* pointProcessorI = new ProcessPointClouds<pcl::PointXYZI>();
+    ProcessPointClouds<pcl::PointXYZI>* pointProcessor = new ProcessPointClouds<pcl::PointXYZI>();
     pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud = 
-        pointProcessorI->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
-    //mrenderPointCloud(viewer,inputCloud,"inputCloud");
+        pointProcessor->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
+    //renderPointCloud(viewer,inputCloud,"inputCloud");
     
+    // Downsample and select ROI around car
     pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = 
-        pointProcessorI->FilterCloud(inputCloud, 0.5, Eigen::Vector4f (-5, -5, -2, 1), Eigen::Vector4f (10, 5, 2, 2));
+        pointProcessor->FilterCloud(inputCloud,
+                                    0.3, // filter resolution
+                                    Eigen::Vector4f(-8, -10, -2, 1), // min point
+                                    Eigen::Vector4f(30, 10, 1, 2)); // max point
     renderPointCloud(viewer,filterCloud,"filterCloud");
+
+    // Segment into ground/not ground
+    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = 
+        pointProcessor->SegmentPlane(filterCloud, 25, 0.3);
+    
+    // Segment further to find individual objects
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = 
+        pointProcessor->Clustering(segmentCloud.first, 0.5, 10, 500);
+
+    // Render
+    int clusterId = 0;
+    std::vector<Color> colors = {Color(1,0,0), Color(0,1,0), Color(0,0,1), Color(1,0,1)};
+
+    for(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster : cloudClusters)
+    {
+        std::cout << "cluster size ";
+        pointProcessor->numPoints(cluster);
+        renderPointCloud(viewer,cluster,"obstCloud"+std::to_string(clusterId),colors[clusterId % colors.size()]);
+
+        Box box = pointProcessor->BoundingBox(cluster);
+        renderBox(viewer,box,clusterId);
+
+        ++clusterId;
+    }
+    renderPointCloud(viewer, segmentCloud.second, "planeCloud", Color(1,1,1));  
 }
 
 
